@@ -5,4 +5,7 @@ dist-ssr
 *.local
 .vscode
 out/
-src/userData/
+userData
+update-dev
+update
+yarn-error.log

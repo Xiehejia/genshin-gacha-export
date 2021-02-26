@@ -1,44 +1,49 @@
 {
   "name": "genshin-gacha-export-electron",
-  "version": "0.0.7",
+  "version": "0.2.0",
   "main": "./src/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
     "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "package": "electron-forge package --platform=win32 --arch=x64",
+    "make": "electron-forge make --platform=win32 --arch=x64",
+    "build-update": "node ./build/update.js"
   },
   "dependencies": {
-    "axios": "^0.21.1",
-    "electron-squirrel-startup": "^1.0.0",
-    "element-plus": "^1.0.2-beta.32",
+    "electron-fetch": "^1.7.3",
+    "electron-unhandled": "^3.0.2",
     "fs-extra": "^9.1.0",
-    "lodash-es": "^4.17.20",
-    "vue": "^3.0.5"
+    "get-stream": "^6.0.0",
+    "semver": "^7.3.4",
+    "winreg": "^1.2.4",
+    "yauzl": "^2.10.0"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.54",
-    "@electron-forge/maker-deb": "^6.0.0-beta.54",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.54",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.54",
     "@electron-forge/maker-zip": "^6.0.0-beta.54",
     "@vitejs/plugin-vue": "^1.1.4",
     "@vue/compiler-sfc": "^3.0.5",
+    "adm-zip": "^0.5.3",
     "autoprefixer": "^10.2.4",
+    "echarts": "^5.0.2",
     "electron": "^11.2.3",
+    "electron-squirrel-startup": "^1.0.0",
+    "element-plus": "^1.0.2-beta.32",
+    "lodash-es": "^4.17.20",
     "postcss": "^8.2.5",
     "tailwindcss": "^2.0.3",
-    "vite": "^2.0.0-beta.65"
+    "vite": "^2.0.1",
+    "vue": "^3.0.5"
   },
   "config": {
     "forge": {
       "packagerConfig": {
         "ignore": [
           "src/(renderer)",
-          "(\\.vscode)",
-          "node_modules/(\\.vite|@.+|element-plus|vue|lodash)"
+          "(userData|update-dev|yarn-error.log|yarn.lock|\\.github|\\.vscode)",
+          "node_modules/(@.+|\\..+)"
         ],
         "name": "Genshin Gacha Export"
       },
@@ -49,17 +54,7 @@
             "win32"
           ]
         }
-      ],
-      "publishers": {
-        "name": "@electron-forge/publisher-github",
-        "config": {
-          "repository": {
-            "owner": "biuuu",
-            "name": "genshin-gacha-export"
-          },
-          "prerelease": true
-        }
-      }
+      ]
     }
   }
 }

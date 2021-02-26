@@ -1,36 +1,62 @@
+const path = require('path')
+const fs = require('fs-extra')
 const { app, BrowserWindow } = require('electron')
+const { initWindow, appRoot } = require('./utils')
+const { disableProxy, proxyStatus } = require('./module/system-proxy')
 require('./getData')
 require('./excel')
+const { getUpdateInfo } = require('./update/index')
+const unhandled = require('electron-unhandled')
+
+unhandled({
+  showDialog: false
+})
 
 const isDev = !app.isPackaged
 let win = null
 
 function createWindow () {
-  win = new BrowserWindow({
-    width: 888,
-    height: 550,
-    webPreferences: {
-      nodeIntegration: true
-    }
-  })
+  win = initWindow()
   win.setMenuBarVisibility(false)
   isDev ? win.loadURL(`http://localhost:3000`) : win.loadFile('./dist/index.html')
 }
 
-app.whenReady().then(createWindow)
+const isFirstInstance = app.requestSingleInstanceLock()
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
+if (!isFirstInstance) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
+  app.whenReady().then(createWindow)
 
-const getWin = () => win
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit()
+    }
+  })
 
-exports.getWin = getWin
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+    }
+  })
+
+  app.on('will-quit', () => {
+    if (proxyStatus.started) {
+      disableProxy()
+    }
+  })
+
+  app.on('quit', () => {
+    if (proxyStatus.started) {
+      disableProxy()
+    }
+  })
+}
+
