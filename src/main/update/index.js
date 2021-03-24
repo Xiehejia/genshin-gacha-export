@@ -5,8 +5,10 @@ const util = require('util')
 const path = require('path')
 const fs = require('fs-extra')
 const extract = require('../module/extract-zip')
-const { version } = require('../../package.json')
+const { version } = require('../../../package.json')
 const { hash, sendMsg } = require('../utils')
+const config = require('../config')
+const i18n = require('../i18n')
 const streamPipeline = util.promisify(require('stream').pipeline)
 
 async function download(url, filePath) {
@@ -33,6 +35,10 @@ const update = async () => {
     if (semver.gt(data.version, version) && semver.gte(version, data.from)) {
       await fs.emptyDir(updatePath)
       const filePath = path.join(updatePath, data.name)
+      if (!config.autoUpdate) {
+        sendMsg(data.version, 'NEW_VERSION')
+        return
+      }
       updateInfo.status = 'downloading'
       await download(`${url}/${data.name}`, filePath)
       const buffer = await fs.readFile(filePath)
@@ -44,6 +50,7 @@ const update = async () => {
       await fs.emptyDir(appPath)
       await fs.copy(appPathTemp, appPath)
       updateInfo.status = 'finished'
+      sendMsg(i18n.log.autoUpdate.success, 'UPDATE_HINT')
     }
   } catch (e) {
     updateInfo.status = 'failed'

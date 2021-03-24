@@ -3,14 +3,7 @@ const getData = require('./getData').getData
 const { app, ipcMain, dialog } = require('electron')
 const fs = require('fs-extra')
 const path = require('path')
-const { getWin } =  require('./utils')
-
-const sendMsg = (text) => {
-  const win = getWin()
-  if (win) {
-    win.webContents.send('LOAD_DATA_STATUS', text)
-  }
-}
+const i18n = require('./i18n')
 
 function pad(num) {
   return `${num}`.padStart(2, "0");
@@ -28,6 +21,7 @@ function getTimeString() {
 }
 
 const start = async () => {
+  const { header, customFont, filePrefix, fileType } = i18n.excel
   const { dataMap, current } = await getData()
   const data = dataMap.get(current)
   // https://github.com/sunfkny/genshin-gacha-export-js/blob/main/index.js
@@ -35,27 +29,31 @@ const start = async () => {
   for (let [key, value] of data.result) {
     const name = data.typeMap.get(key)
     const sheet = workbook.addWorksheet(name, {views: [{state: 'frozen', ySplit: 1}]})
-    sheet.columns = [
-      { header: "时间", key: "time", width: 24 },
-      { header: "名称", key: "name", width: 14 },
-      { header: "类别", key: "type", width: 8 },
-      { header: "星级", key: "rank", width: 8 },
-      { header: "总次数", key: "idx", width: 8 },
-      { header: "保底内", key: "pdx", width: 8 },
-    ]
+    let width = [24, 14, 8, 8, 8, 8]
+    if (!data.lang.includes('zh-')) {
+      width = [24, 32, 16, 12, 12, 12]
+    }
+    const excelKeys = ['time', 'name', 'type', 'rank', 'total', 'pity']
+    sheet.columns = excelKeys.map((key, index) => {
+      return {
+        header: header[key],
+        key,
+        width: width[index]
+      }
+    })
     // get gacha logs
     const logs = value
-    idx = 0
-    pdx = 0
-    for (log of logs){
-      idx += 1
-      pdx += 1
-      log.push(idx,pdx)
+    let total = 0
+    let pity = 0
+    for (let log of logs){
+      total += 1
+      pity += 1
+      log.push(total, pity)
       if (log[3] === 5) {
-        pdx = 0
+        pity = 0
       }
     }
-    // sendMsg(logs)
+
     sheet.addRows(logs)
     // set xlsx hearer style
     ;(["A", "B", "C", "D","E","F"]).forEach((v) => {
@@ -71,7 +69,7 @@ const start = async () => {
         fgColor:{argb:'ffdbd7d3'},
       }
       sheet.getCell(`${v}1`).font ={
-        name: '微软雅黑',
+        name: customFont,
         color: { argb: "ff757575" },
         bold : true
       }
@@ -98,7 +96,7 @@ const start = async () => {
           5: "ffbd6932",
         }
         sheet.getCell(`${c}${i + 2}`).font = {
-          name: '微软雅黑',
+          name: customFont,
           color: { argb: rankColor[v[3]] },
           bold : v[3]!="3"
         }
@@ -106,20 +104,16 @@ const start = async () => {
     })
   }
 
-  sendMsg("获取抽卡记录结束")
-
-  sendMsg("正在导出")
   const buffer = await workbook.xlsx.writeBuffer()
   const filePath = dialog.showSaveDialogSync({
-    defaultPath: path.join(app.getPath('downloads'), `原神抽卡记录_${getTimeString()}`),
+    defaultPath: path.join(app.getPath('downloads'), `${filePrefix}_${getTimeString()}`),
     filters: [
-      { name: 'Excel文件', extensions: ['xlsx'] }
+      { name: fileType, extensions: ['xlsx'] }
     ]
   })
   if (filePath) {
     await fs.ensureFile(filePath)
     await fs.writeFile(filePath, buffer)
-    sendMsg("导出成功")
   }
 }
 
